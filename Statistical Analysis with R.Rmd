@@ -1,0 +1,193 @@
+---
+title: "Statistical Analysis with R"
+author: "Bolaji"
+date: "2023-08-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
+```
+
+## Introduction
+
+This is a statistical analysis done in R, to complete a task given by our client, Mr. John Hughes. The client (Mr.Hughes) would like to understand the following:
+* The effect of **Dividend** on Scale Stock return by creating a linear regression model
+*  The effect of **all input variables** on scaled Stock return by creating a multivariate regression model. 
+In order to complete this ask, I will;
+*  Compute and state the basic statistics
+*  Create and show a fully labeled Histogram of the Target variable
+*  Conduct a T-test that the mean for “stock_return_scaled” is equal to 300
+*  Perform a simple linear regression using dividend as the independent variable and
+stock_return_scaled as the dependent variable
+*  Perform a multiple linear regression on all variables and report the results
+```{r cars}
+#Load and Install Packages 
+install.packages('tidyverse', repos = "https://cran.rstudio.com/")
+install.packages('descr', repos = "https://cran.rstudio.com/")
+install.packages("e1071", repos = "https://cran.rstudio.com/")
+library(tidyverse)
+library(readxl)
+library(descr)
+library(e1071)
+# Load Data 
+stock_df <- read_excel("C:/Users/Bolaji/Downloads/Data Analytics for Business Decision Making/Course Contents/Statistical Predication Modelling/Final Project/Stock_MLRAnalysis.xlsx")
+```
+
+## Assess Data 
+
+We can check the shape, data type and number of observations in the dataset:
+
+```{r pressure, echo=FALSE}
+head(stock_df)
+str(stock_df)
+unique(stock_df$market_overview)
+```
+
+There are 180 observations and 7 variables. Also, there are 6 numerical and 1 character variables. 
+
+## Exploratory Data Analysis 
+```{r}
+#Check the stock_return_scaled by market_overview and visualize
+stock_df %>% 
+  group_by(market_overview) %>% 
+  summarise(Average_Stock = mean(stock_return_scaled))
+ggplot(data = stock_df, aes(x = market_overview, y = stock_return_scaled)) + geom_boxplot() + theme_classic() +
+  labs(title = 'Stock Return by Market Overview', x = 'Market Overview', y = 'Stock Return')
+```
+
+We can see the Average Stock by Market Overview above. It suggests that positive market overview has a higher stock (average) than neutral and negative. **That could be an indicator that there is a relationship between these variables.** Furthermore, the boxplot buttresses our point, with the median **positive** overview higher than **neutral** and **negative** also, there are few outliers. 
+
+```{r}
+#Summary Stats for dataframe and stock_return_scaled variable specifically
+summary(stock_df)
+summary(stock_df$stock_return_scaled)
+```
+The table above summarises the statistics of each variable. The target variable, **Stock Return** has a minimum value of **30.38**, a median of **160.12** and a maximum of **984.54**. 
+
+```{r}
+#Distribution of Target Variable 
+ggplot(data = stock_df, aes(x = stock_return_scaled)) + geom_histogram(bins = 40) + theme_classic() +
+  labs(title = 'Histogram of Stock Return', x = 'Stock Return')
+ggplot(data = stock_df, aes(x = stock_return_scaled)) + geom_boxplot() + theme_classic() +
+  labs(title = 'Histogram of Stock Return', x = 'Stock Return')
+skewness(stock_df$stock_return_scaled)
+```
+
+Checking the distribution of the Target variable, we can see a **right skew**, this indicates that there are more values on the left side of the distribution. Supporting this, the boxplot shows similar distribution with outliers on the right side of the distribution. Finally, we calculate a skew value and get a value of **3.53**
+
+```{r}
+#Relationship between Numerical variables 
+ggplot(data = stock_df, aes(x = return, y = stock_return_scaled)) + geom_point() + theme_classic()+
+  labs(title = 'Scatterplot of Return and stock return', x = 'Return', y = 'Stock Return')
+ggplot(data = stock_df, aes(x = earnings_ranking, y = stock_return_scaled)) + geom_point() + theme_classic()+
+  labs(title = 'Scatterplot of Return and stock return', x = 'Earning Rankings', y = 'Stock Return')
+ggplot(data = stock_df, aes(x = marketcap, y = stock_return_scaled)) + geom_point() + theme_classic()+
+  labs(title = 'Scatterplot of Return and stock return', x = 'Market Cap', y = 'Stock Return')
+```
+
+I would also like to preview if there are relationships between some numerical variables and the target variable. 
+Firstly, there seems to be some relationship between **returns** and **stock return**. **Earning rankings** on the other hand, seems to be showing a negative relationship. Lastly, **market cap** and **stock return** relationship is not very clear. 
+
+## Conduct T Test 
+We set a null hypothesis and alternative hypothesis:
+Null Hypothesis: Ho: µ = 300
+Alternate Hypothesis: Ha: µ ≠ 300
+Then, set a significance level of 0.05
+Significance level = 0.05
+
+```{r}
+#Perform 2 tailed T-Test
+mu <- mean(stock_df$stock_return_scaled)
+mu
+sd <- sd(stock_df$stock_return_scaled)
+sd
+mu0 <- 300 
+alpha <- 0.05
+sigma <- 135.1
+n <- nrow(stock_df)
+z<-(mu-mu0)/(sigma/sqrt(n))
+2*pnorm(abs(z),lower.tail=FALSE)
+```
+The average sales for stock return is **194.173** and standard deviation of **135.08**. After conducting a two tailed t.test, we can see that we get a p-value of **7.819826e-26**, this is lower than the significance level of **0.05**, hence we reject the null hypothesis. **It is also important to note that we are carrying out the t-test despite violating the conditions which is normality**. 
+
+## Simple Linear Regression
+
+Next, we will perform a simple linear regression analysis to understand the relationship between **Dividend** and **stock_return_scaled**
+First, we state the null and alternate hypothesis
+Null Hypothesis (Ho): β_2=0, coefficient of the predictor(dividend) is Zero and NOT statistically significant.
+Alternate Hypothesis (Ha): β_2≠0, coefficient of the predictor(dividend) is not zero and is statistically significant
+```{r}
+#Linear Regression
+ggplot(stock_df, aes(x = dividend, y = stock_return_scaled))+ geom_point(colour = 'orange') + theme_classic() + geom_smooth(method = 'lm')+ labs(title = 'Relationship between Dividend and Stock Return')
+lm <- lm(stock_return_scaled~dividend, data = stock_df)
+summary(lm)
+```
+Firstly, the graph shows a series of parallel line for categories 0 and 1. It is difficult to interpret results from a linear model using a categorical variable as an independent variable. It is advised to either use other models or use numerical variables. This is a **simple linear regression** as there is only **ONE** Independent variable involved. 
+
+The result shows a residual standard error of **135.4**, an intercept of **196.903**, coefficient of dividend to be **-5.118**, and a p-value of **0.8006**. 
+
+The linear regression equation can be summarized as;
+**stock return** = **196.903** - **5.118** * **dividend**
+This means that a unit increase in dividend causes a -**5.118** in stock return. 
+
+Conclusion: The calculated p-value **(7.819826e-26)** is less than the significant level set **(0.05)**, hence we reject the null hypothesis. This means that coefficient of the predictor(dividend) is not zero and is statistically significant
+NOTE: The p-value only tells us that the dividend variable is statistically significant. However, with an R-squared value of **0.04%**, it means the variable holds a **VERY LOW** predictive power and hence we should use other variables for the model. I will suggest that further investigation be carried out as the linear regression model was created with a categorical variable. 
+
+Checking the assumptions of linear model which are;
+- Normality of residuals
+- Constant Variability of residuals
+- Residuals are independent
+- Each variable is linearly related to the outcome. 
+```{r}
+#Linear Regression Assumptions
+residuals <- resid(lm)
+data_resid <- data.frame(dividend = stock_df$dividend, residuals = residuals)
+ggplot(data = stock_df, aes(x = dividend, y = residuals)) +
+  geom_point() +
+  labs(x = "Dividend", y = "Residuals", title = "Residuals vs. Dividend") + theme_classic()
+
+plot(fitted(lm), resid(lm), col = "grey", pch = 20,
+     xlab = "Fitted", ylab = "Residuals", main = "Fitted versus Residuals")
+abline(h = 0, col = "darkorange", lwd = 2)
+
+hist(residuals, main = "Histogram of Residuals", xlab = "Residuals")
+
+qqnorm(residuals)
+qqline(residuals)
+```
+Here, we can observe that the residuals are not normal and there is no linearity present as shown in the scatterplot. The histogram also shows a right skewed residuals. In conclusion, there are several violations of the linear model and in order to properly predict the stock returns, other numerical variables need to be used, as the categorical variable violates assumptions of the linear regression. 
+
+## Multiple Linear Regression 
+
+I will be doing a multiple linear regression next. All the variables in the data set will be used as **independent variables** except the target variable **stock_return_scaled**. 
+
+First thing is to state the null and alternate hypothesis:
+Null Hypothesis: H0 : β1 = β2 = ... = βk = 0; this means that no independent variable has a relationship with stock returns
+Alternate Hypothesis: H1: at least one βi ≠ 0, i = 1, ..., k; Atleast one independent variable has a relationship with stock returns. 
+```{r}
+#Multivariate regression 
+multiple_lm <- lm(stock_return_scaled~., data = stock_df)
+
+print(multiple_lm)
+summary(multiple_lm)
+```
+
+Now let's evaluate the model. 
+The multiple linear regression model has an intercept of **12.63174**, a residual error of **81.87**, Adjusted R Square of **63%**, and p-value of **<2.2e-16**. Also, we can observe that **return**, **dividend**, and **earnings_ranking** all have p-values greater than **0.05** hence are not statistically significant. The summarized multiple regression model;
+stock returns = **12.63174** + **market_overviewneutral** * **156.93738** + **market_overviewpositive** * **105.98573** - **debt_to_equity** * **69.37919**
+**NOTE:** It is important to note that the coefficients for dividend is different for simple and multiple linear regression models. In the simple linear regression model, **dividend** was statistically significant, however in the multiple linear regression model, **dividend** was not statistically significant. This could be due to multicollinearity as more variables were inputted into the model. 
+Conclusion: 
+The calculated p-value **(<2.2e-16)** is less than the significant level set **(0.05)**, hence we reject the null hypothesis. This means that there is a relationship between stock returns and at least one independent variable. The low p-value also suggests that the model is statistically significant. Introducing more variables into a model increases the risk of multicollinearity and then affect the reliability and credibility of a model,as seen with the dividend variable. 
+
+## Analysis Conclusion 
+Based on the results of the analysis we can answer Mr. Hughes ask. 
+Firstly, we observe that;
+- The mean average is **not** equals 300
+- There is a relationship between dividend and stock returns due to low p-value, but with an r-square value 0f **0.04%**, it holds a very low predictive power. Dividend causes a -**5.118** in stock return. 
+- The multiple linear regression reliability was affected by the introduction of more independent variables. Some variables were removed based on the high p-values. Even though the reliability of model was affected, the p-value still suggests that the model is statistically significant. 
+
+
+
+
+
